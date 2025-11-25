@@ -1,34 +1,70 @@
 import React from 'react';
 
 function ProductCard({ product, onAddToCart }) {
+  
+  // 1. Detectar si hay stock
+  const sinStock = product.stock < 1;
 
   const handleAddClick = () => {
-    onAddToCart(product);
+    // Solo permitimos agregar si hay stock
+    if (!sinStock) {
+        onAddToCart(product);
+    }
   };
 
   return (
     <div className="col">
-      <div className="card h-100 shadow-sm item">
-        <img
-          src={product.imagen_url}
-          className="card-img-top"
-          alt={product.nombre}
-          style={{ height: '200px', objectFit: 'cover' }}
-        />
+      {/* Añadimos clase condicional para borde rojo si no hay stock */}
+      <div className={`card h-100 shadow-sm item ${sinStock ? 'border-danger opacity-75' : ''}`}>
+        
+        {/* Contenedor para imagen y etiqueta de agotado */}
+        <div style={{ position: 'relative', overflow: 'hidden' }}>
+            <img
+              src={product.imagen_url}
+              className="card-img-top"
+              alt={product.nombre}
+              style={{ height: '200px', objectFit: 'cover', filter: sinStock ? 'grayscale(100%)' : 'none' }}
+              onError={(e) => e.target.src = 'https://via.placeholder.com/300?text=Sin+Imagen'}
+            />
+            
+            {/* Etiqueta Visual de Agotado */}
+            {sinStock && (
+                <div style={{
+                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                    background: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                    <span className="badge bg-danger fs-5 shadow">AGOTADO</span>
+                </div>
+            )}
+        </div>
         
         <div className="card-body d-flex flex-column">
           <h5 className="card-title titulo-item">{product.nombre}</h5>
+          
           <p className="card-text text-danger fw-bold precio-item">
-            S/. {product.precio.toFixed(2)}
+            S/. {Number(product.precio).toFixed(2)}
           </p>
-          <p className="text-muted">Stock: {product.stock}</p>
-          <p>{product.descripcion}</p>
+          
+          {/* Mostramos el stock real */}
+          <p className={`text-muted small ${sinStock ? 'text-danger fw-bold' : ''}`}>
+            Stock disponible: {product.stock}
+          </p>
+          
+          {/* Descripción corta para que no rompa la tarjeta */}
+          <p className="card-text small text-muted flex-grow-1">
+             {product.descripcion ? product.descripcion.substring(0, 60) + (product.descripcion.length > 60 ? '...' : '') : ''}
+          </p>
+
           <button
-            className="btn btn-warning mt-auto boton-item"
+            className={`btn mt-auto boton-item fw-bold w-100 ${sinStock ? 'btn-secondary' : 'btn-warning'}`}
             onClick={handleAddClick}
+            disabled={sinStock}
           >
-            <i className="bi bi-cart-plus-fill me-2"></i>
-            Añadir al Carrito
+            {sinStock ? (
+                <span><i className="bi bi-x-circle me-2"></i>Agotado</span>
+            ) : (
+                <span><i className="bi bi-cart-plus-fill me-2"></i>Añadir al Carrito</span>
+            )}
           </button>
         </div>
       </div>
