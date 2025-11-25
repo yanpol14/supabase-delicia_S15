@@ -1,167 +1,196 @@
-import { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../supabaseClient';
 import ProductCard from '../components/ProductCard';
 import ShoppingCart from '../components/ShoppingCart';
 
-// --- TUS DATOS DE PRODUCTOS ---
-const allProducts = [
-  // Panes
-  { id: 1, categoria: 'pan', nombre: 'Pan de Yema', precio: 0.50, imagen: '/img/pan.jpg' },
-  { id: 2, categoria: 'pan', nombre: 'Pan Francés', precio: 0.40, imagen: '/img/pan_frances.jpg' },
-  { id: 3, categoria: 'pan', nombre: 'Pan Ciabatta', precio: 0.60, imagen: '/img/ciabatta.webp' },
-  // Pasteles
-  { id: 4, categoria: 'pastel', nombre: 'Pastel de Chocolate', precio: 25.00, imagen: '/img/torta_chocolate.jpg' },
-  { id: 5, categoria: 'pastel', nombre: 'Pastel de Fresa', precio: 22.00, imagen: '/img/torta_fresa.jpg' },
-  { id: 6, categoria: 'pastel', nombre: 'Torta 3 Leches', precio: 28.00, imagen: '/img/torta_3leches.jpg' },
-  // Postres
-  { id: 7, categoria: 'postre', nombre: 'Cheesecake de Maracuyá', precio: 15.00, imagen: '/img/cheesecake.webp' },
-  { id: 8, categoria: 'postre', nombre: 'Muffin de Arándanos', precio: 5.00, imagen: '/img/muffin_arandanos.jpg' },
-  { id: 9, categoria: 'postre', nombre: 'Galletas de Avena', precio: 2.50, imagen: '/img/galletas_avena.jpg' },
-];
-
-// --- EL COMPONENTE ---
 function Productos() {
-  // --- ESTADOS (Tu lógica) ---
-  const [searchTerm, setSearchTerm] = useState('');
+
+  // --- ESTADOS ---
+  const [productos, setProductos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const [cartItems, setCartItems] = useState([]);
 
-  // --- LÓGICA DE FILTRADO (Tu lógica) ---
-  const filteredProducts = allProducts.filter(product =>
-    product.nombre.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  const panes = filteredProducts.filter(p => p.categoria === 'pan');
-  const pasteles = filteredProducts.filter(p => p.categoria === 'pastel');
-  const postres = filteredProducts.filter(p => p.categoria === 'postre');
+  // --- OBTENER PRODUCTOS ---
+  useEffect(() => {
+    const getProductos = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("productos")
+          .select("*");
 
-  // --- FUNCIONES DEL CARRITO (Tu lógica) ---
+        if (error) throw error;
+
+        setProductos(data);
+      } catch (err) {
+        console.error("Supabase Error:", err);
+        setError("Error al cargar productos.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getProductos();
+  }, []);
+
+  // --- FILTRO ---
+  const filtered = productos.filter(p =>
+    p.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const categorias = [...new Set(filtered.map(p => p.categoria?.toLowerCase()))];
+
+  // --- CARRITO ---
   const handleAddToCart = (productToAdd) => {
-    const existingItem = cartItems.find(item => item.id === productToAdd.id);
+    const existingItem = cartItems.find(
+      item => item.id_producto === productToAdd.id_producto
+    );
+
     if (existingItem) {
+      if (existingItem.cantidad + 1 > productToAdd.stock) {
+        alert("No hay suficiente stock disponible.");
+        return;
+      }
+
       setCartItems(cartItems.map(item =>
-        item.id === productToAdd.id ? { ...item, cantidad: item.cantidad + 1 } : item
+        item.id_producto === productToAdd.id_producto
+          ? { ...item, cantidad: item.cantidad + 1 }
+          : item
       ));
+
     } else {
+      if (productToAdd.stock < 1) {
+        alert("Este producto está agotado.");
+        return;
+      }
+
       setCartItems([...cartItems, { ...productToAdd, cantidad: 1 }]);
     }
   };
 
   const handleRemoveFromCart = (productId) => {
-    setCartItems(cartItems.filter(item => item.id !== productId));
+    setCartItems(cartItems.filter(item => item.id_producto !== productId));
   };
 
   const handleChangeQuantity = (productId, newQuantity) => {
+    const product = productos.find(p => p.id_producto === productId);
+
+    if (!product) return;
+
+    if (newQuantity > product.stock) {
+      alert("No puedes superar el stock disponible.");
+      return;
+    }
+
     if (newQuantity < 1) {
       handleRemoveFromCart(productId);
-    } else {
-      setCartItems(cartItems.map(item =>
-        item.id === productId ? { ...item, cantidad: newQuantity } : item
-      ));
+      return;
+    }
+
+    setCartItems(cartItems.map(item =>
+      item.id_producto === productId
+        ? { ...item, cantidad: newQuantity }
+        : item
+    ));
+  };
+
+  const handlePurchase = async () => {
+    try {
+      for (const item of cartItems) {
+        const { error } = await supabase
+          .from("productos")
+          .update({
+            stock: item.stock - item.cantidad
+          })
+          .eq("id_producto", item.id_producto);
+
+        if (error) throw error;
+      }
+
+      alert("Compra realizada con éxito");
+      setCartItems([]);
+    } catch (err) {
+      console.error("Error en la compra:", err);
+      alert("Ocurrió un error al procesar la compra.");
     }
   };
 
-
-  // --- RENDERIZADO (FUSIONADO) ---
   return (
-    <> {/* <-- Añadimos un Fragment para envolver todo */}
-      
-      {/* === 1. EL HEADER QUE FALTABA (Traducido a JSX) === */}
-      {/* (Sin el <nav>, que ya está en App.jsx) */}
-      <header className="header-bg" style={{ height: '400px' }}>
+    <>
+      {/* HEADER SIEMPRE PRESENTE */}
+      <header className="header-bg" style={{ height: "400px" }}>
         <div className="header-overlay"></div>
-        <div className="header-content" style={{ height: '100%', position: 'relative', zIndex: 2 }}>
-          
-          {/* El Título único de la página "Productos" */}
+        <div className="header-content">
           <div className="d-flex align-items-center justify-content-center" style={{ height: '320px' }}>
             <div className="text-center text-white w-100">
               <h2 className="display-4 fw-bold mb-3">Nuestros Productos</h2>
-              <p className="lead mb-4">Elige entre panes, pizzas, piononos, tortas, postres y bizcochos</p>
+              <p className="lead mb-4">Elige entre todas nuestras categorías</p>
             </div>
           </div>
-
         </div>
       </header>
-      
-      {/* === 2. EL MAIN CON LOS PRODUCTOS (Tu código de lógica) === */}
+
+      {/* CONTENIDO PRINCIPAL */}
       <div className="container mt-5">
         <div className="row">
-          
-          {/* Columna de Productos (8 columnas) */}
+
+          {/* COL IZQUIERDA: Productos */}
           <div className="col-lg-8">
-            <h2 className="mb-4">Nuestros Productos</h2>
 
-            {/* Barra de Búsqueda */}
-            <form className="d-flex mb-4" role="search" onSubmit={(e) => e.preventDefault()}>
-              <input
-                className="form-control me-2"
-                type="search"
-                placeholder="Buscar producto..."
-                aria-label="Buscar"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </form>
+            {/* BUSCADOR */}
+            <input
+              className="form-control mb-4"
+              type="search"
+              placeholder="Buscar producto..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
 
-            {/* Sección de Panes */}
-            {panes.length > 0 && (
+            {/* LOADING */}
+            {loading && <p>Cargando productos...</p>}
+
+            {/* ERROR */}
+            {error && <p style={{ color: "red" }}>{error}</p>}
+
+            {/* RESULTADOS */}
+            {!loading && !error && (
               <>
-                <h4 className="border-bottom pb-2 mb-3">Panes</h4>
-                <div className="row row-cols-1 row-cols-md-3 g-4 mb-4">
-                  {panes.map(product => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      onAddToCart={handleAddToCart}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
+                {categorias.length > 0 ? (
+                  categorias.map(cat => (
+                    <div key={cat}>
+                      <h4 className="border-bottom pb-2 mb-3 text-capitalize">{cat}</h4>
 
-            {/* Sección de Pasteles */}
-            {pasteles.length > 0 && (
-              <>
-                <h4 className="border-bottom pb-2 mb-3">Pasteles</h4>
-                <div className="row row-cols-1 row-cols-md-3 g-4 mb-4">
-                  {pasteles.map(product => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      onAddToCart={handleAddToCart}
-                    />
-                  ))}
-                </div>
+                      <div className="row row-cols-1 row-cols-md-3 g-4 mb-4">
+                        {filtered
+                          .filter(p => p.categoria?.toLowerCase() === cat)
+                          .map(product => (
+                            <ProductCard
+                              key={product.id_producto}
+                              product={product}
+                              onAddToCart={handleAddToCart}
+                            />
+                          ))}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p>No se encontraron productos.</p>
+                )}
               </>
-            )}
-
-            {/* Sección de Postres */}
-            {postres.length > 0 && (
-              <>
-                <h4 className="border-bottom pb-2 mb-3">Postres</h4>
-                <div className="row row-cols-1 row-cols-md-3 g-4 mb-4">
-                  {postres.map(product => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      onAddToCart={handleAddToCart}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-
-            {/* Mensaje si no hay resultados */}
-            {filteredProducts.length === 0 && (
-              <p className="text-muted">No se encontraron productos que coincidan con tu búsqueda.</p>
             )}
           </div>
 
-          {/* Columna del Carrito (4 columnas) */}
+          {/* COL DERECHA: Carrito */}
           <div className="col-lg-4">
             <ShoppingCart
               cartItems={cartItems}
               onRemoveItem={handleRemoveFromCart}
               onChangeQuantity={handleChangeQuantity}
+              onPurchase={handlePurchase}
             />
           </div>
+
         </div>
       </div>
     </>

@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'; // Importa el componente Link
 
 function Footer() {
   return (
-    <footer className="footer text-light pt-5 pb-3 footer-gradient">
+    <footer className="footer text-light pt-3 pb-1 footer-gradient">
       <div className="container">
         <div className="row text-center text-md-start">
           
