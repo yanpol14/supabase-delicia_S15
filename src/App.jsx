@@ -12,10 +12,9 @@ import Productos from './pages/Productos.jsx';
 import Nosotros from './pages/Nosotros.jsx';
 import Pedidos from './pages/Pedidos.jsx'; 
 import Login from './login.jsx'; 
-import ConfirmarPedido from './pages/ConfirmarPedido.jsx'; 
 
-// --- NUEVO: Importamos la página para agregar productos ---
-import AgregarProducto from './pages/AgregarProducto.jsx'; 
+// --- NUEVO: Importamos la página de confirmación ---
+import ConfirmarPedido from './pages/ConfirmarPedido.jsx'; 
 
 function App() {
   // 3. ESTADO GLOBAL DEL CARRITO
@@ -51,14 +50,12 @@ function App() {
             element={<ShoppingCart cart={cart} setCart={setCart} />} 
           />
 
-          {/* Ruta de Confirmación de Pedido */}
+          {/* --- NUEVA RUTA: Confirmación de Pedido --- */}
+          {/* Aquí es donde llega el usuario después de darle a "Continuar" en el carrito */}
           <Route 
             path="/confirmar-pedido" 
             element={<ConfirmarPedido cart={cart} setCart={setCart} />} 
           />
-
-          {/* --- NUEVA RUTA: Agregar Producto (Solo Admin) --- */}
-          <Route path="/agregar-producto" element={<AgregarProducto />} />
 
         </Routes>
       </main>

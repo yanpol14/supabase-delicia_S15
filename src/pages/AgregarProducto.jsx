@@ -6,9 +6,6 @@ function AgregarProducto() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   
-  // 1. NUEVO ESTADO: Para saber si estamos buscando datos (evita el error 'buscando is not defined')
-  const [buscando, setBuscando] = useState(false);
-  
   // Estado para los datos del formulario
   const [formData, setFormData] = useState({
     nombre: '',
@@ -19,7 +16,7 @@ function AgregarProducto() {
     imagen_url: '' 
   });
 
-  // 2. VERIFICAR SI ES ADMIN (Seguridad)
+  // 1. VERIFICAR SI ES ADMIN (Seguridad)
   useEffect(() => {
     const checkAdmin = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -33,60 +30,13 @@ function AgregarProducto() {
     checkAdmin();
   }, [navigate]);
 
-  // 3. NUEVO: EFECTO PARA AUTO-RELLENAR DATOS (Con corrección de sintaxis)
-  useEffect(() => {
-    // Si el nombre es muy corto, no hacemos nada para ahorrar recursos
-    if (formData.nombre.length < 3) return;
-
-    // Función asíncrona para buscar
-    const buscarDatos = async () => {
-      setBuscando(true);
-      try {
-        // Sintaxis corregida para evitar errores de await
-        const { data, error } = await supabase
-          .from('productos')
-          .select('*')
-          .ilike('nombre', formData.nombre)
-          .eq('categoria', formData.categoria)
-          .maybeSingle();
-
-        if (error) throw error;
-
-        if (data) {
-          console.log("Producto encontrado, rellenando...", data);
-          // Actualizamos el formulario manteniendo el nombre que escribiste
-          setFormData(prev => ({
-            ...prev,
-            descripcion: data.descripcion || '',
-            precio: data.precio || '',
-            stock: data.stock || '',
-            imagen_url: data.imagen_url || ''
-          }));
-        }
-      } catch (error) {
-        console.error("Error en autocompletado:", error);
-      } finally {
-        setBuscando(false);
-      }
-    };
-
-    // Debounce: Esperamos 800ms antes de ejecutar la búsqueda
-    const timer = setTimeout(() => {
-      buscarDatos();
-    }, 800);
-
-    // Limpieza del timer si el usuario sigue escribiendo
-    return () => clearTimeout(timer);
-
-  }, [formData.nombre, formData.categoria]);
-
-  // 4. MANEJAR CAMBIOS EN LOS INPUTS
+  // 2. MANEJAR CAMBIOS EN LOS INPUTS
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // 5. ENVIAR DATOS A SUPABASE
+  // 3. ENVIAR DATOS A SUPABASE (Lógica Inteligente)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -99,11 +49,12 @@ function AgregarProducto() {
         return;
       }
 
-      // PASO A: Verificar si el producto YA existe (Confirmación final)
+      // PASO A: Verificar si el producto YA existe
+      // Usamos .maybeSingle() para que no de error si no encuentra nada
       const { data: productoExistente, error: errorBusqueda } = await supabase
         .from('productos')
         .select('id_producto, nombre')
-        .ilike('nombre', formData.nombre)
+        .ilike('nombre', formData.nombre) // 'ilike' ignora mayúsculas/minúsculas (ej: Pan = pan)
         .maybeSingle();
 
       if (errorBusqueda) throw errorBusqueda;
@@ -116,7 +67,7 @@ function AgregarProducto() {
 
         if (!confirmar) {
           setLoading(false);
-          return; 
+          return; // Cancelamos si el usuario no quiere sobrescribir
         }
 
         const { error: errorUpdate } = await supabase
@@ -125,7 +76,7 @@ function AgregarProducto() {
             descripcion: formData.descripcion,
             categoria: formData.categoria,
             precio: parseFloat(formData.precio),
-            stock: parseInt(formData.stock),
+            stock: parseInt(formData.stock), // Esto reemplaza el stock.
             imagen_url: formData.imagen_url
           })
           .eq('id_producto', productoExistente.id_producto);
@@ -174,13 +125,13 @@ function AgregarProducto() {
             <div className="card-body p-4">
               <div className="alert alert-info small mb-3">
                 <i className="bi bi-info-circle me-2"></i>
-                Escribe el nombre. Si existe, los datos se cargarán automáticamente.
+                Si el producto ya existe, se actualizarán sus datos automáticamente.
               </div>
 
               <form onSubmit={handleSubmit}>
                 
-                {/* Nombre con indicador de búsqueda */}
-                <div className="mb-3 position-relative">
+                {/* Nombre */}
+                <div className="mb-3">
                   <label className="form-label fw-bold">Nombre del Producto</label>
                   <input 
                     type="text" 
@@ -189,16 +140,8 @@ function AgregarProducto() {
                     value={formData.nombre} 
                     onChange={handleChange} 
                     required 
-                    autoComplete="off"
                     placeholder="Ej: Torta de Chocolate"
                   />
-                  {/* Feedback visual "Buscando..." */}
-                  {buscando && (
-                    <div className="position-absolute end-0 top-50 translate-middle-y me-3 text-primary fw-bold small">
-                      <div className="spinner-border spinner-border-sm me-1" role="status"></div>
-                      Buscando...
-                    </div>
-                  )}
                 </div>
 
                 {/* Categoría */}
@@ -248,7 +191,7 @@ function AgregarProducto() {
                   </div>
                 </div>
 
-                {/* URL Imagen con vista previa */}
+                {/* URL Imagen */}
                 <div className="mb-3">
                   <label className="form-label fw-bold">URL de la Imagen</label>
                   <input 
@@ -259,18 +202,6 @@ function AgregarProducto() {
                     onChange={handleChange} 
                     placeholder="https://..."
                   />
-                  {/* Vista previa pequeña */}
-                  {formData.imagen_url && (
-                    <div className="mt-2 text-center p-2 bg-light border rounded">
-                      <p className="small text-muted mb-1">Vista previa:</p>
-                      <img 
-                        src={formData.imagen_url} 
-                        alt="Vista previa" 
-                        style={{height: '80px', objectFit: 'cover', borderRadius: '5px'}} 
-                        onError={(e) => e.target.style.display = 'none'} // Ocultar si la url es invalida
-                      />
-                    </div>
-                  )}
                 </div>
 
                 {/* Descripción */}
