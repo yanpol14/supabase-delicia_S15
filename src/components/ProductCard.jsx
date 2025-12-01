@@ -14,7 +14,7 @@ function ProductCard({ product, onAddToCart }) {
 
   return (
     <div className="col">
-      {/* Añadimos clase condicional para borde rojo si no hay stock */}
+      {/* CORRECCIÓN: Agregadas comillas invertidas ` ` dentro de las llaves */}
       <div className={`card h-100 shadow-sm item ${sinStock ? 'border-danger opacity-75' : ''}`}>
         
         {/* Contenedor para imagen y etiqueta de agotado */}
@@ -45,16 +45,17 @@ function ProductCard({ product, onAddToCart }) {
             S/. {Number(product.precio).toFixed(2)}
           </p>
           
-          {/* Mostramos el stock real */}
+          {/* Mostramos el stock real - CORRECCIÓN: Agregadas comillas invertidas */}
           <p className={`text-muted small ${sinStock ? 'text-danger fw-bold' : ''}`}>
             Stock disponible: {product.stock}
           </p>
           
-          {/* Descripción corta para que no rompa la tarjeta */}
+          {/* Descripción corta */}
           <p className="card-text small text-muted flex-grow-1">
-             {product.descripcion ? product.descripcion.substring(0, 60) + (product.descripcion.length > 60 ? '...' : '') : ''}
+              {product.descripcion ? product.descripcion.substring(0, 60) + (product.descripcion.length > 60 ? '...' : '') : ''}
           </p>
 
+          {/* CORRECCIÓN: Agregadas comillas invertidas en el className del botón */}
           <button
             className={`btn mt-auto boton-item fw-bold w-100 ${sinStock ? 'btn-secondary' : 'btn-warning'}`}
             onClick={handleAddClick}

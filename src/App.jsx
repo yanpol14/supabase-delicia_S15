@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 
 // 1. IMPORTACIONES DE COMPONENTES
-// (Asegúrate de que estas rutas coincidan con tus carpetas)
 import Navbar from './components/Navbar.jsx';
 import Footer from './components/Footer.jsx';
 import ShoppingCart from './components/ShoppingCart.jsx';
@@ -11,12 +10,14 @@ import ShoppingCart from './components/ShoppingCart.jsx';
 import Home from './pages/Home.jsx';
 import Productos from './pages/Productos.jsx';
 import Nosotros from './pages/Nosotros.jsx';
-import Pedidos from './pages/Pedidos.jsx'; // Tu historial de compras
-import Login from './login.jsx'; // Tu login (que está en la raíz de src)
+import Pedidos from './pages/Pedidos.jsx'; 
+import Login from './login.jsx'; 
+
+// --- NUEVO: Importamos la página de confirmación ---
+import ConfirmarPedido from './pages/ConfirmarPedido.jsx'; 
 
 function App() {
   // 3. ESTADO GLOBAL DEL CARRITO
-  // Lo definimos aquí para que NO se borre al cambiar de página
   const [cart, setCart] = useState([]);
 
   return (
@@ -24,13 +25,13 @@ function App() {
       {/* Navbar siempre visible arriba */}
       <Navbar />
       
-      {/* Contenedor principal que cambia según la ruta */}
+      {/* Contenedor principal */}
       <main className="flex-grow-1" style={{ minHeight: '80vh' }}>
         <Routes>
           {/* Ruta Inicio */}
           <Route path="/" element={<Home />} />
           
-          {/* Ruta Productos: Le pasamos 'cart' y 'setCart' para poder AGREGAR items */}
+          {/* Ruta Productos */}
           <Route 
             path="/productos" 
             element={<Productos cart={cart} setCart={setCart} />} 
@@ -39,15 +40,23 @@ function App() {
           {/* Ruta Nosotros */}
           <Route path="/nosotros" element={<Nosotros />} />
           
-          {/* Rutas de Usuario (Base de Datos) */}
+          {/* Rutas de Usuario */}
           <Route path="/pedidos" element={<Pedidos />} />
           <Route path="/login" element={<Login />} />
           
-          {/* Ruta del Carrito: Le pasamos 'setCart' para poder vaciarlo al pagar */}
+          {/* Ruta del Carrito */}
           <Route 
             path="/carrito" 
             element={<ShoppingCart cart={cart} setCart={setCart} />} 
           />
+
+          {/* --- NUEVA RUTA: Confirmación de Pedido --- */}
+          {/* Aquí es donde llega el usuario después de darle a "Continuar" en el carrito */}
+          <Route 
+            path="/confirmar-pedido" 
+            element={<ConfirmarPedido cart={cart} setCart={setCart} />} 
+          />
+
         </Routes>
       </main>
 
