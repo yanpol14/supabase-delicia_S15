@@ -1,32 +1,29 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { supabase } from '../supabaseClient'; 
+import { supabase } from '../supabaseClient.js'; // Importante el .js para evitar errores
 
 function Navbar() {
   const [user, setUser] = useState(null);
-  const [rol, setRol] = useState(null); // Nuevo estado para el ROL
+  const [rol, setRol] = useState(null); 
   const navigate = useNavigate();
 
   useEffect(() => {
-    // 1. Ver si ya hay sesión al cargar la página
+    // 1. Ver si ya hay sesión al cargar
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      // Recuperamos el rol guardado en el Login
       const storedRole = localStorage.getItem('userRole');
       if (session && storedRole) {
         setRol(storedRole);
       }
     });
 
-    // 2. Escuchar cambios en tiempo real (Login, Logout)
+    // 2. Escuchar cambios en tiempo real
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
 
       if (event === 'SIGNED_IN') {
-        // Al iniciar sesión, leemos el rol que acabamos de guardar
         setRol(localStorage.getItem('userRole'));
       } else if (event === 'SIGNED_OUT') {
-        // Al salir, limpiamos el estado del rol
         setRol(null);
         localStorage.removeItem('userRole');
       }
@@ -37,7 +34,6 @@ function Navbar() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    // Limpieza extra de seguridad
     localStorage.removeItem('userRole');
     setRol(null);
     navigate('/'); 
@@ -64,20 +60,30 @@ function Navbar() {
             {/* Lógica Condicional de Usuario/Admin */}
             {user ? (
               <>
-                {/* SI ES ADMIN: Muestra enlace especial */}
+                {/* SI ES ADMIN */}
                 {rol === 'administrador' ? (
-                   <li className="nav-item">
-                     <Link className="nav-link fw-bold" to="/pedidos" style={{color:"#FFD700", borderBottom: '1px solid #FFD700'}}>
-                       ⚠️ GESTIONAR PEDIDOS
-                     </Link>
-                   </li>
+                  <>
+                     {/* Botón Gestión Pedidos */}
+                    <li className="nav-item">
+                      <Link className="nav-link fw-bold" to="/pedidos" style={{color:"#FFD700", borderBottom: '1px solid #FFD700'}}>
+                        ⚠️ GESTIONAR PEDIDOS
+                      </Link>
+                    </li>
+
+                     {/* NUEVO: Botón Agregar Producto (Solo Admin) */}
+                    <li className="nav-item ms-lg-2">
+                      <Link className="btn btn-light btn-sm fw-bold text-dark mt-2 mt-lg-0" to="/agregar-producto">
+                        + Nuevo Producto
+                      </Link>
+                    </li>
+                  </>
                 ) : (
-                   /* SI ES USUARIO: Muestra enlace normal */
-                   <li className="nav-item">
-                     <Link className="nav-link fw-bold" to="/pedidos" style={{color:"#fff"}}>
-                       Mis Pedidos
-                     </Link>
-                   </li>
+                   /* SI ES USUARIO */
+                  <li className="nav-item">
+                    <Link className="nav-link fw-bold" to="/pedidos" style={{color:"#fff"}}>
+                      Mis Pedidos
+                    </Link>
+                  </li>
                 )}
                 
                 <li className="nav-item ms-2">
@@ -102,12 +108,12 @@ function Navbar() {
               </li>
             )}
             
-             {/* Icono del Carrito (Visible para todos, o podrías ocultarlo al admin si quieres) */}
-             <li className="nav-item ms-3">
-               <Link to="/carrito" className="nav-link" style={{color:"#fff", fontSize: '1.2rem'}}>
-                 🛒
-               </Link>
-             </li>
+             {/* Icono del Carrito */}
+            <li className="nav-item ms-3">
+              <Link to="/carrito" className="nav-link" style={{color:"#fff", fontSize: '1.2rem'}}>
+                🛒
+              </Link>
+            </li>
 
           </ul>
         </div>
